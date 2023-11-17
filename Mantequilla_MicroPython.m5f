@@ -1,0 +1,66 @@
+from m5stack import *
+from m5ui import *
+from uiflow import *
+import ntptime
+import machine
+import time
+from easyIO import *
+
+
+setScreenColor(0x111111)
+
+# Constants
+DUTY_OPENED = 7
+DUTY_CLOSED = 12
+
+i = None
+j = None
+Duty = 12
+Status = None
+PWM0 = machine.PWM(26, freq=50, duty=Duty, timer=0)
+ntp = ntptime.client(host='cn.pool.ntp.org', timezone=(-5))
+
+label0 = M5TextBox(31, 144, "", lcd.FONT_Default, 0xFFFFFF, rotate=0)
+label1 = M5TextBox(0, 0, "", lcd.FONT_Default, 0xFFFFFF, rotate=0)
+label2 = M5TextBox(0, 144, "", lcd.FONT_Default, 0xFFFFFF, rotate=0)
+
+
+# This function is to feed the dog
+def feed():
+  open_feeder()
+  wait(3)
+  close_feeder()
+
+# This function open the feeder
+def open_feeder():
+  global i, Duty, PWM0
+  for i in range(DUTY_CLOSED, DUTY_OPENED -1, -1):
+    PWM0.duty(i)
+    Duty = i
+    wait_ms(5)
+  
+  
+# This function close the feeder
+def close_feeder():
+  global j, Duty, PWM0
+  for j in range(DUTY_OPENED, DUTY_CLOSED + 1):
+    PWM0.duty(j)
+    Duty = j
+    wait_ms(5)
+
+# Describe this function...
+def send_notification():
+  global i, Duty, Status, PWM0
+  pass
+
+btnA.wasPressed(feed)
+
+while True:
+  if axp.getChargeState():
+    Status = 'C'
+  else:
+    Status = ''
+  label0.setText(str((str('%') + str((map_value((axp.getBatVoltage()), 3.7, 4.1, 0, 100))))))
+  label1.setText(str(ntp.formatTime(':')))
+  label2.setText(str(Status))
+  wait_ms(2)
